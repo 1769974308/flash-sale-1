@@ -24,7 +24,7 @@ services:
       MYSQL_USER: thoughts-beta
       MYSQL_PASSWORD: thoughts-beta
     ports:
-    - 3306:3306
+    - 13306:3306
     networks:
     - thoughts-beta-network
   mysqld-exporter:
@@ -41,8 +41,11 @@ services:
   redis:
     container_name: redis
     image: redislabs/redismod:latest
+    command: redis-server --appendonly yes --requirepass !1Qaz@2Wsx
+    volumes:
+    - ./data/redis:/data #数据文件挂载
     ports:
-    - 6379:6379
+    - 16379:6379
     networks:
     - thoughts-beta-network
 
