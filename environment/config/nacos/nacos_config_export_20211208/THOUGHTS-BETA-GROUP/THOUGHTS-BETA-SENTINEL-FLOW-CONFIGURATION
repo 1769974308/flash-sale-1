@@ -1,0 +1,9 @@
+[
+  {
+    "resource": "GetFlashItem",
+    "controlBehavior": 0,
+    "count": 2,
+    "grade": 1,
+    "strategy": 0
+  }
+]

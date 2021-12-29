@@ -109,8 +109,9 @@ public class NormalStockCacheService implements ItemStockCacheService {
                 logger.info("alignItemStocks|秒杀品未设置库存|{}", itemId);
                 return false;
             }
+            // ITEM_STOCKS_CACHE_KEY_{itemId}
             String key1ItemStocksCacheKey = getItemStocksCacheKey(itemId);
-
+            // ITEM_STOCK_ALIGN_LOCK_KEY_{itemId}
             String key2ItemStocksAlignKey = getItemStocksCacheAlignKey(itemId);
             List<String> keys = Lists.newArrayList(key1ItemStocksCacheKey, key2ItemStocksAlignKey);
 
@@ -142,9 +143,12 @@ public class NormalStockCacheService implements ItemStockCacheService {
             return false;
         }
         try {
+            //获取扣减库存key(ITEM_STOCKS_CACHE_KEY_{itemId})
             String key1ItemStocksCacheKey = getItemStocksCacheKey(stockDeduction.getItemId());
+            //获取扣减库存校验key(ITEM_STOCK_ALIGN_LOCK_KEY_{itemId})
             String key2ItemStocksCacheAlignKey = getItemStocksCacheAlignKey(stockDeduction.getItemId());
             List<String> keys = Lists.newArrayList(key1ItemStocksCacheKey, key2ItemStocksCacheAlignKey);
+            //扣减库存LUA脚本
             DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>(DECREASE_ITEM_STOCK_LUA, Long.class);
             Long result = null;
             long startTime = System.currentTimeMillis();

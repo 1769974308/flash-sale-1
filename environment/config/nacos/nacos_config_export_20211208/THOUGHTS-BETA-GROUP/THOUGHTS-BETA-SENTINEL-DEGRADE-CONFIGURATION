@@ -1,0 +1,8 @@
+[
+  {
+    "resource": "GetFlashItem",
+    "grade": 2,
+    "count": 1,
+    "timeWindow": 60
+  }
+]

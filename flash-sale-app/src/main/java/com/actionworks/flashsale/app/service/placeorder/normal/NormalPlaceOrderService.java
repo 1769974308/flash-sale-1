@@ -59,25 +59,29 @@ public class NormalPlaceOrderService implements PlaceOrderService {
         if (userId == null || placeOrderCommand == null || !placeOrderCommand.validateParams()) {
             throw new BizException(INVALID_PARAMS);
         }
+        //校验秒杀活动是否有效
         boolean isActivityAllowPlaceOrder = flashActivityDomainService.isAllowPlaceOrderOrNot(placeOrderCommand.getActivityId());
         if (!isActivityAllowPlaceOrder) {
             logger.info("placeOrder|秒杀活动下单规则校验未通过|{},{}", userId, placeOrderCommand.getActivityId());
             return PlaceOrderResult.failed(PLACE_ORDER_FAILED);
         }
+        //校验秒杀品是否有效
         boolean isItemAllowPlaceOrder = flashItemAppService.isAllowPlaceOrderOrNot(placeOrderCommand.getItemId());
         if (!isItemAllowPlaceOrder) {
             logger.info("placeOrder|秒杀品下单规则校验未通过|{},{}", userId, placeOrderCommand.getActivityId());
             return PlaceOrderResult.failed(PLACE_ORDER_FAILED);
         }
+        //从数据库获取秒杀品
         FlashItem flashItem = flashItemDomainService.getFlashItem(placeOrderCommand.getItemId());
-
+        //生成订单ID（雪花算法生成）
         Long orderId = orderNoGenerateService.generateOrderNo(new OrderNoGenerateContext());
+        //组装订单信息
         FlashOrder flashOrderToPlace = toDomain(placeOrderCommand);
         flashOrderToPlace.setItemTitle(flashItem.getItemTitle());
         flashOrderToPlace.setFlashPrice(flashItem.getFlashPrice());
         flashOrderToPlace.setUserId(userId);
         flashOrderToPlace.setId(orderId);
-
+        //组装扣减库存信息
         StockDeduction stockDeduction = new StockDeduction()
                 .setItemId(placeOrderCommand.getItemId())
                 .setQuantity(placeOrderCommand.getQuantity())
@@ -85,16 +89,19 @@ public class NormalPlaceOrderService implements PlaceOrderService {
 
         boolean preDecreaseStockSuccess = false;
         try {
+            //从分布式缓存中申请库存预扣减
             preDecreaseStockSuccess = itemStockCacheService.decreaseItemStock(stockDeduction);
             if (!preDecreaseStockSuccess) {
                 logger.info("placeOrder|库存预扣减失败|{},{}", userId, JSON.toJSONString(placeOrderCommand));
                 return PlaceOrderResult.failed(PLACE_ORDER_FAILED.getErrCode(), PLACE_ORDER_FAILED.getErrDesc());
             }
+            //从数据库中扣减库存
             boolean decreaseStockSuccess = stockDeductionDomainService.decreaseItemStock(stockDeduction);
             if (!decreaseStockSuccess) {
                 logger.info("placeOrder|库存扣减失败|{},{}", userId, JSON.toJSONString(placeOrderCommand));
                 return PlaceOrderResult.failed(PLACE_ORDER_FAILED.getErrCode(), PLACE_ORDER_FAILED.getErrDesc());
             }
+            //创建订单信息入库
             boolean placeOrderSuccess = flashOrderDomainService.placeOrder(userId, flashOrderToPlace);
             if (!placeOrderSuccess) {
                 throw new BizException(PLACE_ORDER_FAILED.getErrDesc());
